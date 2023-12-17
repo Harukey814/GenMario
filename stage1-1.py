@@ -33,7 +33,7 @@ MOVEMENT = [
 MAX_WORKERS = 10       # 最大プロセス数
 MAX_GENERATIONS = 100  # 最大世代数
 NUM_MARIOS = 50        # 個体数
-LEN_CHROMOSOME = 300   # ゲノムの長さ
+LEN_CHROMOSOME = 300   # 染色体の長さ
 CROSS_RATE = 0.8       # 交叉率
 MUTATION_RATE = 0.1    # 突然変異率
 FRAME_INTERVAL = 10    # 行動するフレーム間隔
@@ -45,7 +45,7 @@ def create_generation():
 
 
 def cross(parent1, parent2):
-    """交叉する関数"""
+    """交叉を行う関数"""
     cross_points = rnd.choice(LEN_CHROMOSOME, 1, replace=False)
     child1 = np.concatenate([parent1[:cross_points[0]], parent2[cross_points[0]:]])
     child2 = np.concatenate([parent2[:cross_points[0]], parent1[cross_points[0]:]])
@@ -53,9 +53,10 @@ def cross(parent1, parent2):
 
 
 def mutation(mario):
-    """突然変異する関数"""
+    """突然変異を行う関数"""
     if rnd.random() < MUTATION_RATE:
-        mutated_indexes = rnd.choice(LEN_CHROMOSOME, math.ceil(0.05 * LEN_CHROMOSOME), replace=False)
+        num_mutations = math.ceil(0.05 * LEN_CHROMOSOME)
+        mutated_indexes = rnd.choice(LEN_CHROMOSOME, num_mutations, replace=False)
         for index in mutated_indexes:
             mario[index] = rnd.randint(len(MOVEMENT))
 
@@ -63,7 +64,7 @@ def mutation(mario):
 
 
 def sorts(fitnesses, generation):
-    """ゲノムを並び替える関数"""
+    """マリオを並び替える関数"""
     return zip(*sorted(zip(fitnesses, generation), key=lambda x: x[0], reverse=True))
 
 
@@ -84,9 +85,12 @@ def roulette_selection(fitnesses, generation):
 
 def evaluate(mario):
     """評価関数"""
+    # 環境設定
     env = gym_super_mario_bros.make('SuperMarioBros-1-1-v0')
     env = JoypadSpace(env, MOVEMENT)
     env.reset()
+
+    # ゲーム本番
     end_flag = False
     for action in mario:
         for _ in range(FRAME_INTERVAL):
@@ -98,20 +102,27 @@ def evaluate(mario):
         if end_flag:
             break
 
-    fitness = info["x_pos"]
+    # 評価値計算
+    evaluation = info["x_pos"]
     env.close()
-    return fitness
+    return evaluation
 
 
 if __name__ == "__main__":
+    # 初期世代
     generation = create_generation()
+
+    # マルチプロセス
     with ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
         for current_generation in range(MAX_GENERATIONS):
+            # 適応度
             fitnesses = []
             evaluations = list(executor.map(evaluate, generation))
             fitnesses.extend(evaluations)
             fitnesses, generation = sorts(fitnesses, generation)
             print_fitness(fitnesses, current_generation)
+
+            # 次世代
             next_generation = []
             num_elite = math.ceil(NUM_MARIOS * (1 - CROSS_RATE))
             next_generation.extend(generation[:num_elite])
