@@ -1,7 +1,6 @@
 # マリオ関連のimport
 from nes_py.wrappers import JoypadSpace
 import gym_super_mario_bros
-from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
 
 # プロット関連のimport
 # import matplotlib.pyplot as plt
@@ -24,11 +23,17 @@ rnd.seed(1704034800)
 # 警告を非表示
 warnings.filterwarnings("ignore", category=UserWarning, module="gym.envs.registration")
 
+# アクションパターン
+MOVEMENT = [
+    ['right', 'B'],
+    ['right', 'A', 'B'],
+]
+
 # 定数設定
 MAX_WORKERS = 10       # 最大プロセス数
 MAX_GENERATIONS = 100  # 最大世代数
-NUM_GENOMES = 50       # 個体数
-LEN_GENOME = 300       # ゲノムの長さ
+NUM_MARIOS = 50        # 個体数
+LEN_CHROMOSOME = 300   # ゲノムの長さ
 CROSS_RATE = 0.8       # 交叉率
 MUTATION_RATE = 0.1    # 突然変異率
 FRAME_INTERVAL = 10    # 行動するフレーム間隔
@@ -36,26 +41,25 @@ FRAME_INTERVAL = 10    # 行動するフレーム間隔
 
 def create_generation():
     """初期世代を作成する関数"""
-    return rnd.randint(7, size=(NUM_GENOMES, LEN_GENOME))
+    return rnd.randint(len(MOVEMENT), size=(NUM_MARIOS, LEN_CHROMOSOME))
 
 
 def cross(parent1, parent2):
     """交叉する関数"""
-    cross_points = rnd.choice(LEN_GENOME, 2, replace=False)
-    cross_points.sort()
-    child1 = np.concatenate([parent1[:cross_points[0]], parent2[cross_points[0]:cross_points[1]], parent1[cross_points[1]:]])
-    child2 = np.concatenate([parent2[:cross_points[0]], parent1[cross_points[0]:cross_points[1]], parent2[cross_points[1]:]])
+    cross_points = rnd.choice(LEN_CHROMOSOME, 1, replace=False)
+    child1 = np.concatenate([parent1[:cross_points[0]], parent2[cross_points[0]:]])
+    child2 = np.concatenate([parent2[:cross_points[0]], parent1[cross_points[0]:]])
     return child1, child2
 
 
-def mutation(genome):
+def mutation(mario):
     """突然変異する関数"""
     if rnd.random() < MUTATION_RATE:
-        mutated_indexes = rnd.choice(LEN_GENOME, math.ceil(0.05 * LEN_GENOME), replace=False)
+        mutated_indexes = rnd.choice(LEN_CHROMOSOME, math.ceil(0.05 * LEN_CHROMOSOME), replace=False)
         for index in mutated_indexes:
-            genome[index] = rnd.randint(7)
+            mario[index] = rnd.randint(len(MOVEMENT))
 
-    return genome
+    return mario
 
 
 def sorts(fitnesses, generation):
@@ -66,27 +70,27 @@ def sorts(fitnesses, generation):
 def print_fitness(fitnesses, current_generation):
     """適応度を出力する関数"""
     max = fitnesses[0]
-    min = fitnesses[NUM_GENOMES - 1]
-    avg = int(sum(fitnesses) / NUM_GENOMES)
+    min = fitnesses[NUM_MARIOS - 1]
+    avg = int(sum(fitnesses) / NUM_MARIOS)
     print("{:<3}   max: {:<4}   min: {:<4}   avg: {:<4}".format(current_generation, max, min, avg))
 
 
 def roulette_selection(fitnesses, generation):
     """ルーレット選択を行う関数"""
     selection_rates = fitnesses / np.sum(fitnesses)
-    parent_indexes = rnd.choice(NUM_GENOMES, 2, p=selection_rates, replace=False)
+    parent_indexes = rnd.choice(NUM_MARIOS, 2, p=selection_rates, replace=False)
     return generation[parent_indexes[0]], generation[parent_indexes[1]]
 
 
-def evaluate_genome(genome):
+def evaluate(mario):
     """評価関数"""
     env = gym_super_mario_bros.make('SuperMarioBros-1-1-v0')
-    env = JoypadSpace(env, SIMPLE_MOVEMENT)
+    env = JoypadSpace(env, MOVEMENT)
     env.reset()
     end_flag = False
-    for gene in genome:
+    for action in mario:
         for _ in range(FRAME_INTERVAL):
-            observation, reward, done, info = env.step(gene)
+            observation, reward, done, info = env.step(action)
             if done:
                 end_flag = True
                 break
@@ -104,18 +108,16 @@ if __name__ == "__main__":
     with ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
         for current_generation in range(MAX_GENERATIONS):
             fitnesses = []
-            evaluations = list(executor.map(evaluate_genome, generation))
+            evaluations = list(executor.map(evaluate, generation))
             fitnesses.extend(evaluations)
             fitnesses, generation = sorts(fitnesses, generation)
             print_fitness(fitnesses, current_generation)
             next_generation = []
-            for i in range(math.ceil(NUM_GENOMES * (1 - CROSS_RATE))):
-                next_generation.append(generation[i])
-
-            while len(next_generation) < NUM_GENOMES:
+            num_elite = math.ceil(NUM_MARIOS * (1 - CROSS_RATE))
+            next_generation.extend(generation[:num_elite])
+            while len(next_generation) < NUM_MARIOS:
                 parent1, parent2 = roulette_selection(fitnesses, generation)
                 child1, child2 = cross(parent1, parent2)
-                next_generation.append(mutation(child1))
-                next_generation.append(mutation(child2))
+                next_generation.extend([mutation(child1), mutation(child2)])
 
-            generation = next_generation[:NUM_GENOMES]
+            generation = next_generation[:NUM_MARIOS]
