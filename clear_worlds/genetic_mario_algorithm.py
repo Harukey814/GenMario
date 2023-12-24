@@ -57,7 +57,7 @@ class GeneticMarioAlgorithm:
     frame_interval : int
         行動するフレーム間隔。
     stop_actions : int
-        座標が一定だと、停滞と判断するアクション数。
+        停滞と判断するアクション数。
     """
 
     def __init__(
@@ -265,7 +265,7 @@ class GeneticMarioAlgorithm:
             # 座標を保存
             positions.append(info["x_pos"])
 
-            # 停滞の場合は終了
+            # 停滞(定めたアクション数の間、座標が一定)の場合は終了
             if len(positions) >= self.stop_actions and len(set(positions[-self.stop_actions:])) == 1:
                 break
 
@@ -386,7 +386,7 @@ class GeneticMarioAlgorithm:
         rc('animation', html='jshtml')
         display(anime)
 
-    def plot_fitnesses(fitnesses):
+    def plot_fitnesses(self, fitnesses):
         """
         適応度(最大・最小・平均)の推移をプロットする関数
 
