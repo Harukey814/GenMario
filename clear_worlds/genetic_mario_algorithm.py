@@ -16,7 +16,7 @@ import numpy.random as rnd
 from warnings import filterwarnings
 
 # マルチプロセス関連のimport
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 
 # アニメーションのサイズを拡張
 plt.rcParams['animation.embed_limit'] = 200
@@ -286,7 +286,7 @@ class GeneticMarioAlgorithm:
             各世代の適応度(最大・最小・平均)の配列。
         """
         # GA本番（マルチプロセス）
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+        with ProcessPoolExecutor(max_workers=self.max_workers) as executor:
             # 世代ごとの最優秀マリオ
             super_marios = []
 
