@@ -308,7 +308,7 @@ class GeneticMarioAlgorithm:
                 # 並び替え・表示
                 fitnesses, generation, images = self.sorts(fitnesses, generation, images)
                 if previous_max_fitness < fitnesses[0]:
-                    plt.figure(figsize=(2, 2))
+                    plt.figure(figsize=(3, 3))
                     plt.imshow(images[0])
                     plt.show()
 
@@ -376,7 +376,7 @@ class GeneticMarioAlgorithm:
                     env.reset()
 
         # アニメーションの準備
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(5, 5))
         image = ax.imshow(env.render(mode='rgb_array'))
 
         # アニメーション作成（FPS of Super Mario Bros is 20）
