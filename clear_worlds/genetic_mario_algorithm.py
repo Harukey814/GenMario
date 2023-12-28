@@ -337,7 +337,7 @@ class GeneticMarioAlgorithm:
 
     def mario_animation(self, mario):
         """
-        マリオのアニメーションを作成する関数
+        マリオのアニメーションを作成する。
 
         Parameters
         ----------
@@ -388,7 +388,7 @@ class GeneticMarioAlgorithm:
 
     def plot_fitnesses(self, fitnesses):
         """
-        適応度(最大・最小・平均)の推移をプロットする関数
+        適応度(最大・最小・平均)の推移をプロットする。
 
         Parameters
         ----------
